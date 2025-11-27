@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Task-02 — Stopwatch Web Application</title>
+  <style>
+    :root{
+      --bg1: #0f1724; /* deep navy */
+      --card: linear-gradient(135deg,#6c5ce7 0%,#00bcd4 100%);
+      --accent: #7c4dff;
+      --glass: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.7);
+      --radius: 18px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    html,body{height:100%;margin:0;background:radial-gradient(circle at 10% 10%, #0b1220 0%, #06070a 40%, #07050a 100%);color:#fff}
+    .wrap{min-height:100vh;display:grid;grid-template-columns: 420px 1fr;gap:32px;padding:40px;align-items:center}
+
+    /* left card */
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border-radius:var(--radius);padding:30px;box-shadow: 0 10px 30px rgba(0,0,0,0.6);position:relative;overflow:hidden;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .badge{display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.06);font-weight:600;font-size:13px;color:var(--muted)}
+    h1{margin:18px 0 12px;font-size:26px;letter-spacing:-0.6px}
+    p.lead{color:rgba(255,255,255,0.8);line-height:1.5}
+
+    /* stopwatch panel */
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:20px;border-radius:14px;margin-top:18px;border:1px solid rgba(255,255,255,0.03)}
+    .time{font-size:48px;font-weight:700;letter-spacing:1px;text-align:center}
+    .controls{display:flex;gap:12px;justify-content:center;margin-top:14px}
+    button{cursor:pointer;border:0;padding:10px 16px;border-radius:12px;font-weight:600}
+    .btn-start{background:linear-gradient(90deg,#00b894,#00cec9);color:#06201f}
+    .btn-stop{background:linear-gradient(90deg,#ff7675,#ff9a9e);color:#2b0707}
+    .btn-neutral{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+
+    /* right area */
+    .hero{
+      border-radius:var(--radius);padding:36px;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;background:linear-gradient(135deg,#2b0d63 0%,#1b9aa8 100%);box-shadow: 0 20px 50px rgba(15,12,40,0.6);
+    }
+    .quote{font-size:14px;opacity:0.95;margin-bottom:12px}
+    .hero h2{font-size:22px;margin:6px 0}
+    .hero p{max-width:60ch;color:rgba(255,255,255,0.95);line-height:1.6}
+
+    /* laps */
+    .laps{margin-top:18px;max-height:210px;overflow:auto;padding:10px;background:rgba(0,0,0,0.08);border-radius:12px}
+    .lap{display:flex;justify-content:space-between;padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .lap:last-child{border-bottom:none}
+
+    /* responsive */
+    @media (max-width:880px){.wrap{grid-template-columns:1fr;padding:24px}.hero{order:2;margin-top:18px}.card{order:1}}
+
+    footer{font-size:13px;color:rgba(255,255,255,0.6);margin-top:10px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card" aria-labelledby="title">
+      <span class="badge">Task-02</span>
+      <h1 id="title">Stopwatch web Application</h1>
+      <p class="lead">To build a stopwatch web application, you can use HTML, CSS and JavaScript. HTML is used to structure the elements of the application. By implementing functions for starting, pausing, and resetting the stopwatch, as well as tracking and displaying lap times, users can accurately measure and record time intervals.</p>
+
+      <div class="panel" role="region" aria-label="stopwatch">
+        <div class="time" id="display">00:00:00.000</div>
+        <div class="controls">
+          <button id="startBtn" class="btn-start">Start</button>
+          <button id="lapBtn" class="btn-neutral">Lap</button>
+          <button id="stopBtn" class="btn-stop">Pause</button>
+          <button id="resetBtn" class="btn-neutral">Reset</button>
+        </div>
+
+        <div class="laps" id="laps" aria-live="polite" aria-atomic="false">
+          <!-- laps will appear here -->
+        </div>
+        <footer>Built with HTML • CSS • JavaScript</footer>
+      </div>
+    </section>
+
+    <aside class="hero">
+      <div style="width:100%">
+        <div class="quote">“</div>
+        <h2>Interactive & User-friendly</h2>
+        <p>With these technologies and functionalities, you can create an interactive and user-friendly stopwatch web application. Try starting the timer, saving lap times, and exporting them if needed.</p>
+      </div>
+    </aside>
+  </div>
+
+<script>
+// Stopwatch logic
+let startTime = 0, elapsed = 0, timerId = null, running = false;
+const display = document.getElementById('display');
+const lapsEl = document.getElementById('laps');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const lapBtn = document.getElementById('lapBtn');
+const resetBtn = document.getElementById('resetBtn');
+let lapCounter = 0;
+let laps = [];
+
+function formatTime(ms){
+  const milliseconds = ms % 1000;
+  const totalSeconds = Math.floor(ms/1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds/60) % 60;
+  const hours = Math.floor(totalSeconds/3600);
+  return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}.${String(milliseconds).padStart(3,'0')}`;
+}
+
+function update(){
+  const now = performance.now();
+  const diff = now - startTime + elapsed;
+  display.textContent = formatTime(Math.floor(diff));
+}
+
+function start(){
+  if(running) return;
+  running = true;
+  startTime = performance.now();
+  timerId = setInterval(update, 31);
+  startBtn.textContent = 'Running';
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+}
+
+function pause(){
+  if(!running) return;
+  running = false;
+  clearInterval(timerId);
+  const now = performance.now();
+  elapsed += now - startTime;
+  startBtn.textContent = 'Start';
+  startBtn.disabled = false;
+}
+
+function reset(){
+  pause();
+  elapsed = 0; startTime = 0; display.textContent = '00:00:00.000';
+  laps = []; lapCounter = 0; renderLaps();
+}
+
+function lap(){
+  const nowElapsed = running ? (performance.now() - startTime + elapsed) : elapsed;
+  lapCounter += 1;
+  const lapObj = {i: lapCounter, t: nowElapsed};
+  laps.unshift(lapObj); // newest first
+  renderLaps();
+}
+
+function renderLaps(){
+  lapsEl.innerHTML = '';
+  if(laps.length===0){
+    lapsEl.innerHTML = '<div style="opacity:.8;padding:12px">No laps yet — press Lap to record split times.</div>';
+    return;
+  }
+  laps.forEach(l =>{
+    const row = document.createElement('div'); row.className='lap';
+    const left = document.createElement('div'); left.textContent = `Lap ${l.i}`;
+    const right = document.createElement('div'); right.textContent = formatTime(Math.floor(l.t));
+    row.appendChild(left); row.appendChild(right);
+    lapsEl.appendChild(row);
+  })
+}
+
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', pause);
+lapBtn.addEventListener('click', lap);
+resetBtn.addEventListener('click', reset);
+
+// initialize state
+stopBtn.disabled = true;
+renderLaps();
+
+// keyboard shortcuts: space = start/pause, L = lap, R = reset
+window.addEventListener('keydown', (e)=>{
+  if(e.code==='Space'){
+    if(running) pause(); else start();
+    e.preventDefault();
+  }
+  if(e.key.toLowerCase()==='l') lap();
+  if(e.key.toLowerCase()==='r') reset();
+});
+</script>
+</body>
+</html>
