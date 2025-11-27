@@ -84,6 +84,3 @@ Pull requests are welcome! For major changes, open an issue first to discuss.
 
 This project is licensed under the **MIT License**.
 
----
-
-### ⭐ If you like this project, give it a star on GitHub!
